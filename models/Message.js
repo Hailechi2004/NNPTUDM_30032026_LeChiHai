@@ -1,30 +1,47 @@
-const mongoose = require("mongoose");
+// models/Message.js - SQLite Model
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
 
-const messageSchema = new mongoose.Schema(
+const Message = sequelize.define(
+  "Message",
   {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
     from: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "Users",
+        key: "id",
+      },
     },
     to: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "Users",
+        key: "id",
+      },
     },
-    contentMessage: {
-      type: {
-        type: String,
-        enum: ["file", "text"],
-        required: true,
-      },
-      content: {
-        type: String,
-        required: true,
-      },
+    type: {
+      type: DataTypes.ENUM("file", "text"),
+      allowNull: false,
+      defaultValue: "text",
+    },
+    content: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
   },
-  { timestamps: true },
+  {
+    tableName: "messages",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
 );
 
-module.exports = mongoose.model("Message", messageSchema);
+module.exports = Message;

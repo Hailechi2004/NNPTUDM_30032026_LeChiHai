@@ -1,7 +1,17 @@
+// routes/messageRouter.js - SQLite Version
 const express = require("express");
 const router = express.Router();
 const Message = require("../models/Message");
-const mongoose = require("mongoose");
+const User = require("../models/User");
+const { Op } = require("sequelize");
+
+// Middleware giả định: lấy user hiện tại từ request (đã xác thực)
+const authMiddleware = (req, res, next) => {
+  req.userId = req.user?.id || req.query.currentUserId;
+  next();
+};
+
+router.use(authMiddleware);
 
 /**
  * GET /:userID
@@ -11,16 +21,8 @@ const mongoose = require("mongoose");
  */
 router.get("/:userID", async (req, res) => {
   try {
-    let { userID } = req.params;
-    let currentUserId = req.headers["user-id"] || req.query.currentUserId;
-
-    // Convert to ObjectId
-    if (currentUserId) {
-      currentUserId = new mongoose.Types.ObjectId(currentUserId);
-    }
-    if (userID) {
-      userID = new mongoose.Types.ObjectId(userID);
-    }
+    const { userID } = req.params;
+    const currentUserId = req.userId;
 
     // Kiểm tra userID hợp lệ
     if (!userID || !currentUserId) {
@@ -31,20 +33,45 @@ router.get("/:userID", async (req, res) => {
     }
 
     // Tìm tất cả message giữa 2 user
-    const messages = await Message.find({
-      $or: [
-        { from: currentUserId, to: userID },
-        { from: userID, to: currentUserId },
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { from: currentUserId, to: userID },
+          { from: userID, to: currentUserId },
+        ],
+      },
+      include: [
+        {
+          model: User,
+          as: "fromUser",
+          attributes: ["id", "name", "email"],
+        },
+        {
+          model: User,
+          as: "toUser",
+          attributes: ["id", "name", "email"],
+        },
       ],
-    })
-      .sort({ createdAt: 1 })
-      .populate("from", "name email")
-      .populate("to", "name email");
+      order: [["createdAt", "ASC"]],
+    });
+
+    // Format response
+    const formattedMessages = messages.map((msg) => ({
+      _id: msg.id,
+      from: msg.fromUser,
+      to: msg.toUser,
+      contentMessage: {
+        type: msg.type,
+        content: msg.content,
+      },
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+    }));
 
     res.status(200).json({
       success: true,
-      data: messages,
-      count: messages.length,
+      data: formattedMessages,
+      count: formattedMessages.length,
     });
   } catch (error) {
     res.status(500).json({
@@ -63,22 +90,8 @@ router.get("/:userID", async (req, res) => {
  */
 router.post("/", async (req, res) => {
   try {
-    let { to, type, content } = req.body;
-    let currentUserId = req.headers["user-id"] || req.query.currentUserId;
-
-    console.log("DEBUG - Headers:", req.headers);
-    console.log("DEBUG - currentUserId before convert:", currentUserId);
-    console.log("DEBUG - to before convert:", to);
-
-    // Convert to ObjectId
-    if (currentUserId) {
-      currentUserId = new mongoose.Types.ObjectId(currentUserId);
-      console.log("DEBUG - currentUserId after convert:", currentUserId);
-    }
-    if (to) {
-      to = new mongoose.Types.ObjectId(to);
-      console.log("DEBUG - to after convert:", to);
-    }
+    const { to, type, content } = req.body;
+    const currentUserId = req.userId;
 
     // Validate input
     if (!to || !type || !content) {
@@ -103,31 +116,46 @@ router.post("/", async (req, res) => {
     }
 
     // Tạo message mới
-    console.log(
-      "DEBUG - Creating message with from:",
-      currentUserId,
-      "to:",
-      to,
-    );
-    const newMessage = new Message({
+    const newMessage = await Message.create({
       from: currentUserId,
       to: to,
-      contentMessage: {
-        type: type,
-        content: content,
-      },
+      type: type,
+      content: content,
     });
 
-    await newMessage.save();
-
     // Populate thông tin user
-    await newMessage.populate("from", "name email");
-    await newMessage.populate("to", "name email");
+    await newMessage.reload({
+      include: [
+        {
+          model: User,
+          as: "fromUser",
+          attributes: ["id", "name", "email"],
+        },
+        {
+          model: User,
+          as: "toUser",
+          attributes: ["id", "name", "email"],
+        },
+      ],
+    });
+
+    // Format response
+    const formattedMessage = {
+      _id: newMessage.id,
+      from: newMessage.fromUser,
+      to: newMessage.toUser,
+      contentMessage: {
+        type: newMessage.type,
+        content: newMessage.content,
+      },
+      createdAt: newMessage.createdAt,
+      updatedAt: newMessage.updatedAt,
+    };
 
     res.status(201).json({
       success: true,
       message: "Message sent successfully",
-      data: newMessage,
+      data: formattedMessage,
     });
   } catch (error) {
     res.status(500).json({
@@ -146,77 +174,59 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    let currentUserId = req.headers["user-id"] || req.query.currentUserId;
+    const currentUserId = req.userId;
 
-    // Convert to ObjectId
-    if (currentUserId) {
-      currentUserId = new mongoose.Types.ObjectId(currentUserId);
-    }
-
-    // Tìm tất cả các conversation khác nhau
-    // Lấy message cuối cùng từ mỗi user
-    const conversations = await Message.aggregate([
-      {
-        $match: {
-          $or: [{ from: currentUserId }, { to: currentUserId }],
-        },
+    // Tìm tất cả conversation khác nhau và lấy message cuối cùng
+    const conversations = await Message.findAll({
+      where: {
+        [Op.or]: [{ from: currentUserId }, { to: currentUserId }],
       },
-      {
-        $addFields: {
-          otherUser: {
-            $cond: [{ $eq: ["$from", currentUserId] }, "$to", "$from"],
-          },
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $group: {
-          _id: "$otherUser",
-          lastMessage: { $first: "$$ROOT" },
-        },
-      },
-      {
-        $replaceRoot: { newRoot: "$lastMessage" },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "$from",
-          foreignField: "_id",
+      include: [
+        {
+          model: User,
           as: "fromUser",
+          attributes: ["id", "name", "email"],
         },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "$to",
-          foreignField: "_id",
+        {
+          model: User,
           as: "toUser",
+          attributes: ["id", "name", "email"],
         },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    // Group by other user và lấy message mới nhất
+    const lastMessagesByUser = {};
+
+    conversations.forEach((msg) => {
+      const otherUserId = msg.from === currentUserId ? msg.to : msg.from;
+
+      if (!lastMessagesByUser[otherUserId]) {
+        lastMessagesByUser[otherUserId] = msg;
+      }
+    });
+
+    // Convert object to array
+    const lastMessages = Object.values(lastMessagesByUser).map((msg) => ({
+      _id: msg.id,
+      from: msg.fromUser,
+      to: msg.toUser,
+      contentMessage: {
+        type: msg.type,
+        content: msg.content,
       },
-      {
-        $addFields: {
-          from: { $arrayElemAt: ["$fromUser", 0] },
-          to: { $arrayElemAt: ["$toUser", 0] },
-        },
-      },
-      {
-        $project: {
-          fromUser: 0,
-          toUser: 0,
-        },
-      },
-    ]);
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+    }));
+
+    // Sort by createdAt DESC
+    lastMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.status(200).json({
       success: true,
-      data: conversations,
-      count: conversations.length,
+      data: lastMessages,
+      count: lastMessages.length,
     });
   } catch (error) {
     res.status(500).json({

@@ -1,4 +1,4 @@
-// models/User-MySQL.js - MySQL Version (Sequelize ORM)
+// models/User.js - SQLite Version (Sequelize ORM)
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
