@@ -1,0 +1,28 @@
+{
+  "name": "messaging-api",
+  "version": "1.0.0",
+  "description": "Messaging API with 3 routers for Node.js + Express + MongoDB",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "messaging",
+    "express",
+    "mongodb",
+    "router"
+  ],
+  "author": "Le Chi Hai",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.1",
+    "mongoose": "^7.0.0",
+    "mysql2": "^3.20.0",
+    "sequelize": "^6.37.8",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

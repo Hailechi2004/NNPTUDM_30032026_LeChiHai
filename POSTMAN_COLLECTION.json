@@ -1,0 +1,220 @@
+{
+  "info": {
+    "name": "Messaging API Tests",
+    "description": "Collection test cho 3 router messaging",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. POST - Send Text Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0001",
+            "type": "text",
+            "description": "Replace with your actual user ID"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"671a1234567890abcdef0002\",\n  \"type\": \"text\",\n  \"content\": \"Xin chào, đây là tin nhắn từ User 1\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/messages",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. POST - Send File Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0002",
+            "type": "text",
+            "description": "Replace with your actual user ID"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"671a1234567890abcdef0001\",\n  \"type\": \"file\",\n  \"content\": \"https://example.com/document.pdf\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/messages",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. POST - Send Another Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0001",
+            "type": "text",
+            "description": "Replace with your actual user ID"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"671a1234567890abcdef0003\",\n  \"type\": \"text\",\n  \"content\": \"Tin nhắn cho user thứ 3\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/messages",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. GET - Get Messages with Specific User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0001",
+            "type": "text",
+            "description": "Replace with your actual user ID"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/messages/671a1234567890abcdef0002?currentUserId=671a1234567890abcdef0001",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages", "671a1234567890abcdef0002"],
+          "query": [
+            {
+              "key": "currentUserId",
+              "value": "671a1234567890abcdef0001",
+              "description": "Replace with your actual user ID"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. GET - Get Last Messages from All Conversations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0001",
+            "type": "text",
+            "description": "Replace with your actual user ID"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/messages?currentUserId=671a1234567890abcdef0001",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages"],
+          "query": [
+            {
+              "key": "currentUserId",
+              "value": "671a1234567890abcdef0001",
+              "description": "Replace with your actual user ID"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. POST - Error Test (Invalid Type)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0001",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"671a1234567890abcdef0002\",\n  \"type\": \"video\",\n  \"content\": \"Invalid type\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/messages",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. POST - Error Test (Missing Fields)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "user-id",
+            "value": "671a1234567890abcdef0001",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"671a1234567890abcdef0002\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/messages",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "messages"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
